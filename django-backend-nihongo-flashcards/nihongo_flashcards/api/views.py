@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .models import VocabularyCard
 from .serializers import VocabCardSerializer
-# import webbrowser
+from datetime import date
 import requests
 from bs4 import BeautifulSoup
 
@@ -70,7 +70,28 @@ def get_all_studycards(request):
 def get_all_cards_by_last_study(request):
     vocab_cards = VocabularyCard.objects.all().order_by('date_last_studied')
     serializer = VocabCardSerializer(vocab_cards, many=True)
-    return Response(serializer.data)
+    last_study_time = serializer.data[-1]["date_last_studied"]
+    update_day(last_study_time)
+    am_pm = " A.M."
+    if int(last_study_time[11:13]) >= 12:
+        am_pm = " P.M."
+    return Response(last_study_time[:10] + " at " + last_study_time[11:19] + am_pm)
+
+
+def update_day(study_time):
+    last_study = study_time[:10]
+    last_study_date = date(int(last_study[:4]), int(last_study[5:7]), int(last_study[8:]))
+    current_time = date.today()
+    time_dif = current_time - last_study_date
+    days = time_dif.days
+    if days > 1:
+        vocab_cards = VocabularyCard.objects.all()
+        for card in vocab_cards:
+            card.days_until_next_study -= days
+            if card.days_until_next_study < 0:
+                card.days_until_next_study = 0
+            card.save()
+    return "Due dates updated"
 
 @api_view(['POST'])
 def create_vocabCard(request):
@@ -94,10 +115,15 @@ def create_vocabCard(request):
 def get_definition(request, primary_key):
     """Search jisho.org with a japanese search word"""
     response = requests.get(f"https://jisho.org/word/{primary_key}")
+    if response.status_code != 200:
+        return Response(['Search failed', f"Your word was not found, try: https://jisho.org/search/{primary_key}"])
+    
     text_soup = BeautifulSoup(response.content, 'html.parser')
+    key_word = text_soup.find("div", {"class": "concept_light-representation"})
+    key_word = key_word.get_text().split("\n")[4].strip()
     furigana = text_soup.find("span", {"class": "furigana"})
     furigana = "".join(furigana.get_text().split("\n"))
-    definition_list = list([f"{primary_key} 【{furigana}】"])
+    definition_list = list([f"{key_word} 【{furigana}】"])
     body_spans = text_soup.find_all("span", {"class": "meaning-meaning"})
     counter = 1
     for span_element in body_spans:
@@ -108,9 +134,31 @@ def get_definition(request, primary_key):
             counter += 1
         else:
             definition_list.append(f"Other forms: {span_text}")
+    
+    definition_list.append("\n")
+    flag = 1
+    response = requests.get(f"https://jisho.org/word/{primary_key}-{flag}")
+    while response.status_code == 200:
+        text_soup = BeautifulSoup(response.content, 'html.parser')
+        furigana = text_soup.find("span", {"class": "furigana"})
+        furigana = "".join(furigana.get_text().split("\n"))
+        definition_list.append(f"{key_word} 【{furigana}】")
+        body_spans = text_soup.find_all("span", {"class": "meaning-meaning"})
+        counter = 1
+        for span_element in body_spans:
+            span_text = span_element.get_text()
+            char = ord(span_text[0])
+            if (65 <= char <= 90) or (97 <= char <= 122):
+                definition_list.append(f"{counter}. {span_text}")
+                counter += 1
+            else:
+                definition_list.append(f"Other forms: {span_text}")
+        definition_list.append("\n")
+        flag += 1
+        response = requests.get(f"https://jisho.org/word/{primary_key}-{flag}")
     definition = "\n".join(definition_list)
     print(definition)
-    return Response(definition)
+    return Response([key_word, definition])
 
 
 @api_view(['PUT'])
@@ -123,15 +171,7 @@ def edit_vocab_card(request, primary_key):
 
     return Response(serializer.data)
 
-@api_view(['PUT'])
-def update_day(request, days):
-    vocab_cards = VocabularyCard.objects.all()
-    for card in vocab_cards:
-        card.days_until_next_study -= int(days)
-        if card.days_until_next_study < 0:
-            card.days_until_next_study = 0
-        card.save()
-    return Response("Due dates updated")
+
 
 
 @api_view(['DELETE'])
