@@ -37,7 +37,8 @@ const CreatePage = () => {
     }
     let response = await fetch(`/api/definition/${card?.vocab_word}`)
     let data = await response.json()
-    setCard({ ...card, 'vocab_answer':data })
+    setCard({ ...card, 'vocab_word':data[0] })
+    setCard({ ...card, 'vocab_answer':data[1] })
     return
 }} title='Get definitions from jisho.org.'>Get Definition</button>
       </div>
