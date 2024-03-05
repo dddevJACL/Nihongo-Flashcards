@@ -20,7 +20,7 @@ FIrst, clone or download the repo
 3. (optional) Create a virtual environment, so that installed packages will only affect / be available to this project. To start up a python virtual environment:
       * a. pip install virtualenv                (install the virtual environment package)
       * b. python -m venv nihongo_flashcards     (create a virtual environment)
-      * c. nihongo_flashcards\Scripts\activate   (activate the virtual environment)
+      * c. nihongo_flashcards\Scripts\activate   (activate the virtual environment, type 'deactivate' to close the virtual environment when you finish)
 4. pip install django               (install django in your virtual environment)
 5. pip install djangorestframework
 6. pip install django-cors-headers  (package for helping Django communicate with React)
