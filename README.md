@@ -17,7 +17,7 @@ FIrst, clone or download the repo
 
 1. Navigate to the directory on your computer where the django-backend-nihongo-flashcards directory lies
 2. Install python if it is not locally installed on your computer https://www.python.org/
-3. (optional) Create a virtual environment, so that installed packages will only affect / be available this project. To start up a python virtual environment:
+3. (optional) Create a virtual environment, so that installed packages will only affect / be available to this project. To start up a python virtual environment:
       * a. pip install virtualenv                (install the virtual environment package)
       * b. python -m venv nihongo_flashcards     (create a virtual environment)
       * c. nihongo_flashcards\Scripts\activate   (activate the virtual environment)
