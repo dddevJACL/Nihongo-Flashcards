@@ -18,9 +18,9 @@ FIrst, clone or download the repo
 1. Navigate to the directory on your computer where the django-backend-nihongo-flashcards directory lies
 2. Install python if it is not locally installed on your computer https://www.python.org/
 3. (optional) Create a virtual environment, so that installed packages will only affect / be available this project. To start up a python virtual environment:
-      a. pip install virtualenv                (install the virtual environment package)
-      b. python -m venv nihongo_flashcards     (create a virtual environment)
-      c. nihongo_flashcards\Scripts\activate   (activate the virtual environment)
+      * a. pip install virtualenv                (install the virtual environment package)
+      * b. python -m venv nihongo_flashcards     (create a virtual environment)
+      * c. nihongo_flashcards\Scripts\activate   (activate the virtual environment)
 4. pip install django               (install django in your virtual environment)
 5. pip install djangorestframework
 6. pip install django-cors-headers  (package for helping Django communicate with React)
