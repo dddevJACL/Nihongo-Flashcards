@@ -6,6 +6,7 @@ from .serializers import VocabCardSerializer
 from datetime import date
 import requests
 from bs4 import BeautifulSoup
+from urllib.request import urlopen
 
 
 
@@ -110,15 +111,23 @@ def create_vocabCard(request):
     serializer = VocabCardSerializer(vocab_card, many=False)
     return Response(serializer.data)
 
+def parse_encode(primary_key):
+    """Encode a japanese character for URL"""
+    hex_list = list()
+    for byte in primary_key:
+        hex_list.append("%" + str(hex(byte)).upper()[2:])
+        print(str(hex(byte)).upper())
+    print("".join(hex_list))
+    return "".join(hex_list)
+
 
 @api_view(['GET'])
 def get_definition(request, primary_key):
     """Search jisho.org with a japanese search word"""
-    response = requests.get(f"https://jisho.org/word/{primary_key}")
-    if response.status_code != 200:
-        return Response(['Search failed', f"Your word was not found, try: https://jisho.org/search/{primary_key}"])
-    
-    text_soup = BeautifulSoup(response.content, 'html.parser')
+    primary_key = parse_encode(primary_key.encode())
+    with urlopen(f"https://jisho.org/word/{primary_key}") as site_response:
+        response = site_response.read()
+    text_soup = BeautifulSoup(response, 'html.parser')
     key_word = text_soup.find("div", {"class": "concept_light-representation"})
     key_word = key_word.get_text().split("\n")[4].strip()
     furigana = text_soup.find("span", {"class": "furigana"})
@@ -137,9 +146,11 @@ def get_definition(request, primary_key):
     
     definition_list.append("\n")
     flag = 1
-    response = requests.get(f"https://jisho.org/word/{primary_key}-{flag}")
-    while response.status_code == 200:
-        text_soup = BeautifulSoup(response.content, 'html.parser')
+    with urlopen(f"https://jisho.org/word/{primary_key}-{flag}") as site_response:
+        response = site_response.read()
+        status_code = site_response.getcode()
+    while status_code == 200:
+        text_soup = BeautifulSoup(response, 'html.parser')
         furigana = text_soup.find("span", {"class": "furigana"})
         furigana = "".join(furigana.get_text().split("\n"))
         definition_list.append(f"{key_word} 【{furigana}】")
@@ -155,7 +166,9 @@ def get_definition(request, primary_key):
                 definition_list.append(f"Other forms: {span_text}")
         definition_list.append("\n")
         flag += 1
-        response = requests.get(f"https://jisho.org/word/{primary_key}-{flag}")
+        with urlopen(f"https://jisho.org/word/{primary_key}-{flag}") as site_response:
+            response = site_response.read()
+            status_code = site_response.getcode()
     definition = "\n".join(definition_list)
     print(definition)
     return Response([key_word, definition])
