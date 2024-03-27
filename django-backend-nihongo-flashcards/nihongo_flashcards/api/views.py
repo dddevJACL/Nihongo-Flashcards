@@ -125,8 +125,11 @@ def parse_encode(primary_key):
 def get_definition(request, primary_key):
     """Search jisho.org with a japanese search word"""
     primary_key = parse_encode(primary_key.encode())
-    with urlopen(f"https://jisho.org/word/{primary_key}") as site_response:
-        response = site_response.read()
+    try:
+        with urlopen(f"https://jisho.org/word/{primary_key}") as site_response:
+            response = site_response.read()
+    except urllib.error.HTTPError:
+        return Response("No entry found")
     text_soup = BeautifulSoup(response, 'html.parser')
     key_word = text_soup.find("div", {"class": "concept_light-representation"})
     key_word = key_word.get_text().split("\n")[4].strip()
@@ -146,10 +149,14 @@ def get_definition(request, primary_key):
     
     definition_list.append("\n")
     flag = 1
-    with urlopen(f"https://jisho.org/word/{primary_key}-{flag}") as site_response:
-        response = site_response.read()
-        status_code = site_response.getcode()
-    while status_code == 200:
+    try:
+        with urlopen(f"https://jisho.org/word/{primary_key}-{flag}") as site_response:
+            response = site_response.read()
+    except urllib.error.HTTPError:
+        definition = "\n".join(definition_list)
+        print(definition)
+        return Response([key_word, definition])
+    while True:
         text_soup = BeautifulSoup(response, 'html.parser')
         furigana = text_soup.find("span", {"class": "furigana"})
         furigana = "".join(furigana.get_text().split("\n"))
@@ -166,12 +173,13 @@ def get_definition(request, primary_key):
                 definition_list.append(f"Other forms: {span_text}")
         definition_list.append("\n")
         flag += 1
-        with urlopen(f"https://jisho.org/word/{primary_key}-{flag}") as site_response:
-            response = site_response.read()
-            status_code = site_response.getcode()
-    definition = "\n".join(definition_list)
-    print(definition)
-    return Response([key_word, definition])
+        try:
+            with urlopen(f"https://jisho.org/word/{primary_key}-{flag}") as site_response:
+                response = site_response.read()
+        except urllib.error.HTTPError:
+            definition = "\n".join(definition_list)
+            print(definition)
+            return Response([key_word, definition])
 
 
 @api_view(['PUT'])
